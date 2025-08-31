@@ -1,1 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OS Lab Programs</title>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    h2 {
+      background: #333;
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+    }
+    pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    code {
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Producer-Consumer Problem (C Program)</h2>
+  <pre><code class="language-c">
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;semaphore.h&gt;
+
+#define BUFFER_SIZE 5
+#define MAX_ITEMS 10
+
+sem_t mutex, empty, full;
+int buffer[BUFFER_SIZE];
+int in = 0;
+int out = 0;
+
+void *producer(void *arg) {
+    int item;
+    for (int i = 0; i &lt; MAX_ITEMS; i++) {
+        item = rand() % 100; // Produce a random item
+        
+        sem_wait(&empty);
+        sem_wait(&mutex);
+        
+        buffer[in] = item;
+        printf("Producer produced item: %d at index %d\n", item, in);
+        in = (in + 1) % BUFFER_SIZE;
+        
+        sem_post(&mutex);
+        sem_post(&full);
+    }
+    return NULL;
+}
+
+void *consumer(void *arg) {
+    int item;
+    for (int i = 0; i &lt; MAX_ITEMS; i++) {
+        sem_wait(&full);
+        sem_wait(&mutex);
+        
+        item = buffer[out];
+        printf("Consumer consumed item: %d from index %d\n", item, out);
+        out = (out + 1) % BUFFER_SIZE;
+        
+        sem_post(&mutex);
+        sem_post(&empty);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t prod_thread, cons_thread;
+    
+    sem_init(&mutex, 0, 1);
+    sem_init(&empty, 0, BUFFER_SIZE);
+    sem_init(&full, 0, 0);
+    
+    pthread_create(&prod_thread, NULL, producer, NULL);
+    pthread_create(&cons_thread, NULL, consumer, NULL);
+    
+    pthread_join(prod_thread, NULL);
+    pthread_join(cons_thread, NULL);
+    
+    sem_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+    
+    return 0;
+}
+  </code></pre>
+
+  <h2>Dining Philosophers Problem (C Program)</h2>
+  <pre><code class="language-c">
+#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;semaphore.h&gt;
+#include &lt;unistd.h&gt;
+
+#define NUM_PHILOSOPHERS 5
+
+sem_t chopsticks[NUM_PHILOSOPHERS];
+pthread_t philosophers[NUM_PHILOSOPHERS];
+
+void *philosopher(void *num) {
+    int id = *(int *)num;
+    int left_chopstick = id;
+    int right_chopstick = (id + 1) % NUM_PHILOSOPHERS;
+
+    while (1) {
+        printf("Philosopher %d is thinking.\n", id);
+        sleep(1);
+
+        if (id % 2 == 0) {
+            sem_wait(&chopsticks[left_chopstick]);
+            sem_wait(&chopsticks[right_chopstick]);
+        } else {
+            sem_wait(&chopsticks[right_chopstick]);
+            sem_wait(&chopsticks[left_chopstick]);
+        }
+
+        printf("Philosopher %d is eating.\n", id);
+        sleep(1);
+
+        sem_post(&chopsticks[left_chopstick]);
+        sem_post(&chopsticks[right_chopstick]);
+        printf("Philosopher %d finished eating and is thinking again.\n", id);
+    }
+}
+
+int main() {
+    int ids[NUM_PHILOSOPHERS];
+
+    for (int i = 0; i &lt; NUM_PHILOSOPHERS; i++) {
+        sem_init(&chopsticks[i], 0, 1);
+        ids[i] = i;
+    }
+
+    for (int i = 0; i &lt; NUM_PHILOSOPHERS; i++) {
+        pthread_create(&philosophers[i], NULL, philosopher, &ids[i]);
+    }
+
+    for (int i = 0; i &lt; NUM_PHILOSOPHERS; i++) {
+        pthread_join(philosophers[i], NULL);
+    }
+
+    for (int i = 0; i &lt; NUM_PHILOSOPHERS; i++) {
+        sem_destroy(&chopsticks[i]);
+    }
+
+    return 0;
+}
+  </code></pre>
+
+</body>
+</html>
 
